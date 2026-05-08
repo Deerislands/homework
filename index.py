@@ -1,28 +1,21 @@
 import requests
 import json
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, Response
-
+from flask import Flask, jsonify, Response, render_template, request
 import random
 import os
-import json
-from flask import Flask, render_template, request
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-
-# --- Firebase 初始化邏輯 (加強版) ---
-if not firebase_admin._apps:  # 避免 Vercel 重複初始化導致報錯
+# --- Firebase 初始化邏輯 ---
+if not firebase_admin._apps:
     try:
         if os.path.exists('serviceAccountKey.json'):
-            # 本地開發環境
             cred = credentials.Certificate('serviceAccountKey.json')
         else:
-            # Vercel 雲端環境：從環境變數讀取
             firebase_config = os.getenv('FIREBASE_CONFIG')
             if firebase_config:
-                # 確保 JSON 格式正確解析
                 cred_dict = json.loads(firebase_config)
                 cred = credentials.Certificate(cred_dict)
             else:
@@ -34,18 +27,18 @@ if not firebase_admin._apps:  # 避免 Vercel 重複初始化導致報錯
     except Exception as e:
         print(f"Firebase 初始化失敗: {e}")
 
-# 初始化資料庫
 db = firestore.client() if firebase_admin._apps else None
 
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    link = "<h1>歡迎進入陳宇謙的網站網頁</h1>"
+    # 將標題與連結文字改為「鹿島浩市」
+    link = "<h1>歡迎進入鹿島浩市的網站網頁</h1>"
     link += "<a href='/mis'>課程</a><hr>"
     link += "<a href='/today'>今天日期</a><hr>"
-    link += "<a href='/about'>關於宇謙</a><hr>"
-    link += "<a href='/welcome?nick=宇謙'>GET傳值</a><hr>"
+    link += "<a href='/about'>關於鹿島浩市</a><hr>"
+    link += "<a href='/welcome?nick=鹿島浩市'>GET傳值</a><hr>"
     link += "<a href='/account'>POST傳值(帳號密碼)</a><hr>"
     link += "<a href='/operation'>數學運算</a><hr>"
     link += "<a href='/cup'>擲茭</a><hr>"
@@ -70,11 +63,13 @@ def today():
 
 @app.route("/about")
 def about():
+    # 這裡會渲染 my.html，請記得確認 my.html 裡的內容是否也需要手動更改
     return render_template("my.html")
 
 @app.route("/welcome", methods=["GET"])
 def welcome():
-    user = request.args.get("nick", "訪客")
+    # 預設訪客名稱改為「鹿島浩市」
+    user = request.args.get("nick", "鹿島浩市")
     return render_template("welcome.html", name=user)
 
 @app.route("/account", methods=["GET", "POST"])
