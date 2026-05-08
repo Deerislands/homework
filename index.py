@@ -33,7 +33,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    # 將標題與連結文字改為「鹿島浩市」
+ 
     link = "<h1>歡迎進入鹿島浩市的網站網頁</h1>"
     link += "<a href='/mis'>課程</a><hr>"
     link += "<a href='/today'>今天日期</a><hr>"
