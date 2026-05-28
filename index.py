@@ -2,7 +2,8 @@ import requests
 import json
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, Response
-
+rom flask import Flask
+from google import genai
 import random
 import os
 from flask import Flask, render_template, request, make_response, jsonify
@@ -349,13 +350,13 @@ def movie3():
             if keyword.lower() in movie['title'].lower():
                 count += 1
 
-                results_html += f"""
+                results_html += f""
                 <div class="movie-item">
                     <div class="title">{count}. {movie['title']}</div>
                     <div>上映日期：{movie['showDate']}</div>
                     <div>連結：<a href="{movie['hyperlink']}" target="_blank">查看詳情</a></div>
                 </div>
-                """
+                ""
         
         if count == 0:
             results_html = "<p>查無相關電影資訊。</p>"
@@ -585,6 +586,24 @@ def webhook3():
     return make_response(jsonify({
         "fulfillmentText": info
     }))
+
+
+app = Flask(__name__)
+
+# 在全域（函式外面）建立 Client 物件，只初始化一次即可，不用每次初始化
+api_key = '你的金鑰貼這邊'
+client = genai.Client(api_key=api_key)
+
+@app.route("/AI")
+def AI():
+    # 每次使用者拜訪該路徑時，直接使用全域的 client 呼叫模型
+    response = client.models.generate_content(
+        model='gemini-3.5-flash',
+        contents='我想查詢靜宜大學資管系的評價？',
+    )
+    
+    # 回傳生成的文字
+    return response.text
 
 
 if __name__ == "__main__":
