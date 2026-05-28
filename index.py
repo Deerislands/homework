@@ -1,17 +1,13 @@
-import requests
-import json
-from bs4 import BeautifulSoup
-from flask import Flask, jsonify, Response
-rom flask import Flask
-from google import genai
-import random
 import os
-from flask import Flask, render_template, request, make_response, jsonify
-
+import json
+import random
+import requests
 from datetime import datetime
+from bs4 import BeautifulSoup
+from flask import Flask, jsonify, Response, render_template, request, make_response
+from google import genai
 import firebase_admin
 from firebase_admin import credentials, firestore
-
 
 # --- Firebase 初始化邏輯（加強版） ---
 if not firebase_admin._apps:  # 避免 Vercel 重複初始化導致報錯
@@ -38,6 +34,7 @@ if not firebase_admin._apps:  # 避免 Vercel 重複初始化導致報錯
 # 初始化資料庫
 db = firestore.client() if firebase_admin._apps else None
 
+# 初始化 Flask 應用程式 (全域只需一次)
 app = Flask(__name__)
 
 
@@ -347,16 +344,17 @@ def movie3():
         for doc in docs:
             movie = doc.to_dict()
 
-            if keyword.lower() in movie['title'].lower():
+            if keyword.lower() in movie.get('title', '').lower():
                 count += 1
 
-                results_html += f""
+                # 這裡原本有 f-string 的語法錯誤（使用了 f"" 而不是 f"""..."""）
+                results_html += f"""
                 <div class="movie-item">
                     <div class="title">{count}. {movie['title']}</div>
                     <div>上映日期：{movie['showDate']}</div>
                     <div>連結：<a href="{movie['hyperlink']}" target="_blank">查看詳情</a></div>
                 </div>
-                ""
+                """
         
         if count == 0:
             results_html = "<p>查無相關電影資訊。</p>"
@@ -510,7 +508,7 @@ def rate():
             "picture": picture,
             "hyperlink": hyperlink,
             "showDate": showDate,
-            "showLength": int(showLength),
+            "showLength": int(showLength) if showLength.isdigit() else 0,
             "rate": rate,
             "lastUpdate": lastUpdate
         }
@@ -575,8 +573,8 @@ def webhook3():
                 movie_dict = doc.to_dict()
 
                 if rate in movie_dict["rate"]:
-                    result += "片名：" + movie_dict["title"] + "\n"
-                    result += "介紹：" + movie_dict["hyperlink"] + "\n\n"
+                    result += "片名：" + movie_dict.get("title", "") + "\n"
+                    result += "介紹：" + movie_dict.get("hyperlink", "") + "\n\n"
 
             if result:
                 info += result
@@ -587,15 +585,20 @@ def webhook3():
         "fulfillmentText": info
     }))
 
-
-app = Flask(__name__)
-
-# 在全域（函式外面）建立 Client 物件，只初始化一次即可，不用每次初始化
+# ----------------- Gemini API 區塊 -----------------
+# 在全域（函式外面）建立 Client 物件，只初始化一次即可
 api_key = '你的金鑰貼這邊'
-client = genai.Client(api_key=api_key)
+try:
+    client = genai.Client(api_key=api_key)
+except Exception as e:
+    print(f"GenAI Client 初始化失敗: {e}")
+    client = None
 
 @app.route("/AI")
 def AI():
+    if not client:
+         return "GenAI 客戶端未正確初始化，請檢查 API Key。"
+         
     # 每次使用者拜訪該路徑時，直接使用全域的 client 呼叫模型
     response = client.models.generate_content(
         model='gemini-3.5-flash',
